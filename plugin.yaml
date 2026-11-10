@@ -1,0 +1,19 @@
+name: msg-optimizer
+version: "0.2.0"
+description: >-
+  小 LLM 消息优化器 — 在主模型看到用户输入前，用小模型把简短/口语化的消息
+  改写成完整无歧义的指令。注册 msg_optimize 辅助任务槽（配置于
+  auxiliary.msg_optimize，指向小模型），并通过 llm_request middleware 在每个
+  用户 turn 的首次 provider 调用处改写当前 user 消息；全程 fail-open，
+  优化器失败不影响主 agent turn。/opt 命令可查看最近一次改写对照。
+author: hermes-agent
+license: MIT
+provides_middleware:
+  - llm_request
+provides_hooks: []
+config_schema:
+  min_len:
+    type: int
+    default: 20
+    label: "Min message length"
+    description: "用户消息短于此长度（字符）时跳过优化，省小模型调用"
