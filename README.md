@@ -1,7 +1,7 @@
 # msg-optimizer
 
 Hermes agent plugin：在用户消息进主 LLM 之前，用一个小模型（经
-`auxiliary.msg_optimize` 路由，如 `agnes-2.5-flash`）把口语化 / 含指代 /
+`auxiliary.msg_optimize` 路由到你自己配的任意模型端点）把口语化 / 含指代 /
 缺前提的输入**补全成更完整的指令**，主模型拿到的是"原话 + 优化参考"。
 
 ## 它做什么

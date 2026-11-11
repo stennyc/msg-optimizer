@@ -30,7 +30,7 @@ auxiliary:
     provider: custom                  # 或 "auto" 继承主模型
     base_url: https://<你的端点>/v1
     key_env: <存 API key 的环境变量名>  # 走 env，不落明文
-    model: <小模型名，如 agnes-2.5-flash>
+    model: <你的小模型名>
 ```
 
 ## 生效方式
