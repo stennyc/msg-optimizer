@@ -24,12 +24,50 @@ Hermes agent plugin：在用户消息进主 LLM 之前，用一个小模型（�
 
 ## 安装 / 启用
 
-仓是**纯插件代码**，不含 profile 运行时配置。克隆到宿主 `plugins/` 目录（或软链）后，
-每个要启用的 profile 需在自己的 `config.yaml` 加三段——**完整配方见 [CONFIG.md](./CONFIG.md)**。
+宿主插件来源（`plugins.py` 头部钉死）支持三种：本地目录 `~/.hermes/plugins/<name>/`、
+项目内 `./.hermes/plugins/`（需 opt-in `HERMES_ENABLE_PROJECT_PLUGINS`）、
+pip `hermes_agent.plugins` entry-point。**本仓走「本地目录」路线**——克隆到宿主
+`plugins/` 目录即可，无需 pip、无需进 catalog：
 
 ```bash
-git clone https://github.com/stennyc/msg-optimizer ~/.hermes/plugins/msg-optimizer
+git clone https://github.com/stennyc/msg-optimizer.git ~/.hermes/plugins/msg-optimizer
 ```
+
+> **目录名必须 = 插件名 `msg-optimizer`**（宿主按 `plugin.yaml` 的 `name` 字段识别；
+> 同名最省事，避免目录名/插件名错位）。多 profile 部署时克隆到对应 profile 的
+> `plugins/` 目录。
+
+仓是**纯插件代码**，不含 profile 运行时配置。克隆后每个要启用的 profile 需在自己的
+`config.yaml` 加三段——**完整配方见 [CONFIG.md](./CONFIG.md)**（`plugins.enabled` /
+`plugins.entries.msg-optimizer.settings` / `auxiliary.msg_optimize`）。改完
+**重启该 profile 的 gateway**（常驻进程只在启动时加载代码 + config 快照；CLI/TUI
+冷启动无需重启）。
+
+### 让 agent 替你装（复制这段丢给任何有 terminal 的 Hermes agent）
+
+```
+任务：在 <HERMES_HOME> 部署 msg-optimizer 插件（小模型消息优化器）。请自己判断
+本机 Hermes 的 gateway 入口（常驻服务 / hermes 子命令 / 系统服务）再执行，步骤：
+ 1. git clone https://github.com/stennyc/msg-optimizer.git <HERMES_HOME>/plugins/msg-optimizer
+ 2. 在目标 profile 的 config.yaml 加三处（照仓内 CONFIG.md）：
+    - plugins.enabled 追加 "msg-optimizer"
+    - plugins.entries.msg-optimizer.settings: {mode: augment, injection: soft}
+    - auxiliary.msg_optimize: {provider, base_url, key_env, model}（配一个能跑的小模型端点）
+ 3. 重启该 profile 的 gateway（怎么重启你自行判断：systemd service / hermes gateway
+    子命令 / 重启常驻进程，任选一种能确保它重新加载代码+config 的方式）。
+ 4. 验收：发一条 >=20 字模糊指代消息，grep 该 profile agent.log 两行指纹：
+    - "Auxiliary msg_optimize: using ..."  <- 小模型路由对
+    - "msg-optimizer augment context for turn ... (N->M chars, <injection>)"  <- 注入生效
+    /opt 斜杠命令可回放最近一次决策。
+ 自检：重启后 grep 该 profile agent.log 应见 "msg-optimizer active in AUGMENT mode"；
+      若见不到，说明 gateway 没重载成功，重做第 3 步（换个重启入口再试）。
+约束：API key 只走 key_env（环境变量名），切勿写进 config 明文；克隆后不要提交
+任何含 key 的文件。
+```
+
+### 进 catalog 后（未来）
+`hermes plugins install msg-optimizer` 一键装（需 hermes-agent 上游 catalog PR
+合并；现阶段用上面的 clone 方式，等价可用）。
 
 ## 验收
 
