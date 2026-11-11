@@ -19,6 +19,21 @@ Fail-open everywhere: optimizer error / timeout / schema miss / gate skip → th
 original message flows through untouched. The main turn is never blocked or
 aborted by this plugin.
 
+Prefix-cache safety: the optimizer context is appended to the LAST user message
+(volatile tail) via the pre_llm_call / llm_request hook — it never touches the
+stable prefix (system + tools + context tiers that builders register via
+prompt_cache_boundary.register_stable_prefix). Provider prompt-caching for the
+main model is therefore unaffected by this plugin; both augment and replace
+modes only mutate the per-turn volatile region, which is not part of the
+stable prefix that prefix-match keys on. The only per-turn cost is one small
+aux-model call plus the injected block's own tokens sitting at the user tail.
+
+Edge note: the injection block embeds turn-specific facts (turn_id, char
+counts) — these also live at the user tail and do not break stable-prefix
+parity. What WOULD break prefix-cache is mutation of the system/context tiers
+(e.g. a rebuild-date timestamp re-rendered into the system prompt); this
+plugin has no such surface.
+
 Config (config.yaml):
   auxiliary.msg_optimize:            # the small model
     provider: custom                # or "auto" to inherit main
