@@ -162,27 +162,22 @@ def _recent_context(messages: Any, up_to_idx: Optional[int] = None, limit: int =
 def _injection_context(original: str, optimized: str, reason: str, injection: str) -> str:
     """Build the text appended to the user message in augment mode.
 
-    The framing/instruction text is ENGLISH (models follow hard directives
-    most reliably in English); the user's original and the optimized content
-    stay in the user's own language (the optimizer's language-iron-rule keeps
-    them untranslated). Reply language is unaffected — the main model still
-    answers in whatever language the user speaks.
+    注入文案保持中文（与用户对话语言一致，你 sign-off 的选择）。optimized 内容
+    本身由优化器的"语言铁律"保证与用户输入同语言，这里框定措辞用中文。
 
-    soft (default): the original stays authoritative; the optimized version is
-    offered as a reference the main model may use if it reads better.
-    aggressive: the optimized version is the instruction to follow; the original
-    is kept only as fallback context.
+    soft (default): 原话保持权威；优化版仅作参考，主模型自行裁量。
+    aggressive: 以优化版为准执行；原话仅作 fallback 上下文。
     """
     if injection == "aggressive":
         return (
-            f"[msg-optimizer] OPTIMIZED INSTRUCTION: {optimized}\n"
-            f"(original: {original} | why: {reason})\n"
-            "Follow the optimized instruction; treat the original as reference only."
+            f"【msg-optimizer 建议指令】{optimized}\n"
+            f"（原话：{original} ｜ 优化原因：{reason}）\n"
+            "请以【建议指令】为准执行；原话仅供参考。"
         )
     return (
-        f"[msg-optimizer] Reference rewrite — original: {original}\n"
-        f"Suggested: {optimized} (why: {reason})\n"
-        "Prefer the original wording; adopt the suggested version only if it is clearer."
+        f"【msg-optimizer 优化参考】你的原话是：{original}\n"
+        f"优化器建议改为：{optimized}（原因：{reason}）\n"
+        "请综合判断，以原话为准，必要时采纳优化版。"
     )
 
 
