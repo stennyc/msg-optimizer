@@ -20,19 +20,17 @@ original message flows through untouched. The main turn is never blocked or
 aborted by this plugin.
 
 Prefix-cache safety: the optimizer context is appended to the LAST user message
-(volatile tail) via the pre_llm_call / llm_request hook — it never touches the
-stable prefix (system + tools + context tiers that builders register via
-prompt_cache_boundary.register_stable_prefix). Provider prompt-caching for the
-main model is therefore unaffected by this plugin; both augment and replace
-modes only mutate the per-turn volatile region, which is not part of the
-stable prefix that prefix-match keys on. The only per-turn cost is one small
-aux-model call plus the injected block's own tokens sitting at the user tail.
+(per-turn volatile tail) via the pre_llm_call / llm_request hook. This is
+independent of the host's register_stable_prefix mechanism (skill/cron
+scaffolds registered as user-message-internal prefixes, see
+prompt_cache_boundary.py) — it never mutates any already-cached prefix.
+Provider prompt-caching for the main model is therefore unaffected; both
+augment and replace modes only touch the current turn's user-message tail.
 
 Edge note: the injection block embeds turn-specific facts (turn_id, char
-counts) — these also live at the user tail and do not break stable-prefix
-parity. What WOULD break prefix-cache is mutation of the system/context tiers
-(e.g. a rebuild-date timestamp re-rendered into the system prompt); this
-plugin has no such surface.
+counts) at the user tail; what WOULD break prefix-cache is mutation of the
+host's stable prefix (the skill/cron scaffold within a user message), which
+this plugin has no surface for.
 
 Config (config.yaml):
   auxiliary.msg_optimize:            # the small model
@@ -135,7 +133,7 @@ _OPTIMIZE_SCHEMA = {
         "missing": {"type": "array", "items": {"type": "string"},
                      "description": "用户没交代、缺了会导致修偏方向的关键前提（技术栈/环境/验收标准等），最多3条；无则空数组"},
     },
-    "required": ["optimized", "changed", "missing"],
+    "required": ["optimized", "changed"],
 }
 
 
@@ -243,8 +241,8 @@ def _run_optimizer(ctx, original: str, context_text: str, turn_id: str):
     except Exception as exc:
         return None, f"optimizer error: {exc}"
     parsed = getattr(result, "parsed", None)
-    logger.info("msg-optimizer optimizer output (turn %s): %s",
-                turn_id, json.dumps(parsed, ensure_ascii=False))
+    logger.debug("msg-optimizer optimizer output (turn %s): %s",
+                 turn_id, json.dumps(parsed, ensure_ascii=False))
     if not isinstance(parsed, dict) or not parsed.get("changed"):
         return parsed, None  # changed=False → original already complete, not a failure
     optimized = str(parsed.get("optimized") or "").strip()
