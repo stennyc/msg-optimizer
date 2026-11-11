@@ -243,6 +243,8 @@ def _run_optimizer(ctx, original: str, context_text: str, turn_id: str):
     except Exception as exc:
         return None, f"optimizer error: {exc}"
     parsed = getattr(result, "parsed", None)
+    logger.info("msg-optimizer optimizer output (turn %s): %s",
+                turn_id, json.dumps(parsed, ensure_ascii=False))
     if not isinstance(parsed, dict) or not parsed.get("changed"):
         return parsed, None  # changed=False → original already complete, not a failure
     optimized = str(parsed.get("optimized") or "").strip()
