@@ -350,6 +350,7 @@ def _make_augment_hook(ctx, min_len: int, injection: str, platforms: list, mode:
             return None
         if not isinstance(parsed, dict) or not parsed.get("changed"):
             _cache_put(tid, original, original, "no change needed", "skip:no-change")
+            logger.debug("msg-optimizer skip:no-change (turn %s, %d chars)", tid, len(original))
             return None
         optimized = str(parsed.get("optimized") or "").strip()
         _cache_put(tid, original, optimized, str(parsed.get("reason", "")), "augment")
