@@ -19,9 +19,11 @@ plugins:
       settings:
         mode: augment        # off | augment | replace（默认 augment）
         injection: soft      # augment only: soft(原话为准) | aggressive(以优化版为准)
-        platforms: []        # 空=全平台；否则只列出的 surface（如 [cli, desktop]）
         min_len: 20          # 规则前置门控：低于此长度不调小模型
 ```
+
+是否启用（哪个 profile / 哪个 surface 生效）由 **hermes plugins 侧**控制：
+`plugins.enabled` 增删 `msg-optimizer` 或把 `mode` 切到 `off`，没有按平台开关。
 
 ## 3. 小模型路由槽（`auxiliary.msg_optimize`）
 ```yaml

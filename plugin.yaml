@@ -1,12 +1,13 @@
 name: msg-optimizer
-version: "0.3.0"
+version: "0.4.0"
 description: >-
   小 LLM 消息优化器 — 在主模型看到用户输入前，用小模型（auxiliary.msg_optimize）
-  把简短/口语化的消息改写成完整无歧义的指令。三个 config 开关，代码 switch-agnostic：
-  mode (off|augment|replace，默认 augment)、injection (soft|aggressive，仅 augment，默认 soft)、
-  platforms (空=全平台)。replace 走 llm_request middleware 直接替换发出消息；
+  把简短/口语化的消息改写成完整无歧义的指令。两个 config 开关，代码 switch-agnostic：
+  mode (off|augment|replace，默认 augment)、injection (soft|aggressive，仅 augment，默认 soft)。
+  replace 走 llm_request middleware 直接替换发出消息；
   augment 走 pre_llm_call hook 追加优化参考（原话保留）；规则前置门控（短/斜杠命令/
   代码块/纯确认词）省小模型调用；全程 fail-open，/opt 命令可回放最近一次决策对照。
+  是否启用由 hermes plugins 侧控制（plugins.enabled / mode），无按平台开关。
 author: hermes-agent
 license: MIT
 provides_middleware:
@@ -29,11 +30,6 @@ config_schema:
     choices: [soft, aggressive]
     label: "Injection (augment only)"
     description: "soft=原话为准、优化版供参考；aggressive=以优化版为准执行"
-  platforms:
-    type: list
-    default: []
-    label: "Platforms"
-    description: "空=全部生效；否则仅列出的 surface（如 [\"desktop\", \"cli\"]）"
   min_len:
     type: int
     default: 20

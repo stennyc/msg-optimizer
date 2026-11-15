@@ -1,6 +1,6 @@
 """msg-optimizer plugin — small-LLM rewrite of the user's live input before the main model sees it.
 
-Three config-driven switches (plugins.entries.msg-optimizer.settings), code is
+Two config-driven switches (plugins.entries.msg-optimizer.settings), code is
 switch-agnostic:
   mode: off | augment | replace     # off = register nothing; augment = pre_llm_call hook
                                     #       (append optimizer context, original kept);
@@ -8,9 +8,11 @@ switch-agnostic:
                                     #       outgoing user message). Default: augment.
   injection: soft | aggressive      # augment only: soft = "原话为准，优化版供参考";
                                     # aggressive = "以优化版为准执行". Default: soft.
-  platforms: []                     # empty = all surfaces; else only listed platforms
-                                    # (e.g. ["desktop", "cli"]).
   min_len: 20                       # rule pre-gate: skip the small model below this.
+
+Activation (whether it runs at all, on which profile/surface) is the hermes
+plugins surface's job — plugins.enabled / a mode switch, not a per-platform
+config list.
 
 Rule pre-gate (no LLM cost, shared by both mechanisms): too short / slash command /
 code block / pure-confirmation word → the small model is never called.
@@ -257,10 +259,13 @@ def register(ctx):
     - replace → llm_request middleware (swap the outgoing user message)
     - augment → pre_llm_call hook (append optimizer context, original kept)
     - off     → register nothing (aux task + /opt still available for introspection)
+
+    Activation lives HERE (plugins.enabled / mode), not per-surface: the user's
+    ruling is that whether the optimizer runs is the hermes plugins surface's
+    job — there is no ``platforms`` config option.
     """
     mode = str(ctx.get_config("mode", default="augment") or "augment").lower()
     injection = str(ctx.get_config("injection", default="soft") or "soft").lower()
-    platforms = ctx.get_config("platforms", default=[]) or []
     min_len = int(ctx.get_config("min_len", default=20) or 20)
 
     # Small-model slot: routed via auxiliary.msg_optimize in config.yaml.
@@ -275,7 +280,7 @@ def register(ctx):
     # (Gate reads config at register time — a mode switch needs a plugin reload.)
     if mode in ("replace", "augment", "off"):
         ctx.register_middleware("llm_request", _make_replace_middleware(ctx, min_len, mode))
-        ctx.register_hook("pre_llm_call", _make_augment_hook(ctx, min_len, injection, platforms, mode))
+        ctx.register_hook("pre_llm_call", _make_augment_hook(ctx, min_len, injection, mode))
         if mode == "replace":
             logger.info("msg-optimizer active in REPLACE mode (middleware; hook idle)")
         elif mode == "augment":
@@ -341,12 +346,13 @@ def _make_replace_middleware(ctx, min_len: int, mode: str):
     return _optimize_request
 
 
-def _make_augment_hook(ctx, min_len: int, injection: str, platforms: list, mode: str):
+def _make_augment_hook(ctx, min_len: int, injection: str, mode: str):
     """Build the pre_llm_call hook closure (active when mode=augment).
 
     pre_llm_call payload carries user_message + conversation_history + platform.
     Returns {"context": ...} to append to the user message (original kept), or
-    None to pass through untouched (fail-open).
+    None to pass through untouched (fail-open). There is no per-platform gate:
+    activation is the hermes plugins surface's job (plugins.enabled / mode).
     """
 
     def _augment_context(session_id: str, user_message: Any, conversation_history: Any,
@@ -354,9 +360,6 @@ def _make_augment_hook(ctx, min_len: int, injection: str, platforms: list, mode:
                         turn_id: str = "", **kwargs: Any) -> Optional[dict[str, str]]:
         if mode != "augment":
             return None  # idle: replace/off owns this turn's optimization
-        # Platform gate: only optimize on listed surfaces (empty list = all).
-        if platforms and platform not in platforms:
-            return None
         original = user_message if isinstance(user_message, str) else _msg_text(user_message)
         if original is None:
             return None
