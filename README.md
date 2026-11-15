@@ -4,6 +4,49 @@ Hermes agent plugin：在用户消息进主 LLM 之前，用一个小模型（�
 `auxiliary.msg_optimize` 路由到你自己配的任意模型端点）把口语化 / 含指代 /
 缺前提的输入**补全成更完整的指令**，主模型拿到的是"原话 + 优化参考"。
 
+
+## Installation
+
+### Linux
+
+```bash
+# Clone to Hermes plugin directory
+git clone https://github.com/stennyc/msg-optimizer.git ~/.hermes/plugins/msg-optimizer
+
+# Auto-install to all profiles that have it enabled in config.yaml:
+bash ~/.hermes/plugins/msg-optimizer/install.sh --all-profiles
+```
+
+### Windows (PowerShell)
+
+```powershell
+# Clone to both plugin directories (AppData + ~/.hermes)
+git clone https://stennyc@github.com/stennyc/msg-optimizer.git "C:\Users\$env:USERNAME\AppData\Local\hermes\plugins\msg-optimizer"
+& "C:\Users\$env:USERNAME\AppData\Local\hermes\plugins\msg-optimizer\install.ps1" -AllProfiles
+```
+
+### Enable in profile config
+
+Add `msg-optimizer` to `plugins.enabled` in the target profile's `config.yaml`:
+
+```yaml
+plugins:
+  enabled:
+  - filemem
+  - msg-optimizer
+  # ... other plugins
+```
+
+Then restart the Hermes gateway.
+
+### Dual-path note (Windows)
+
+Hermes on Windows stores plugins in two locations:
+- `C:\Users\<user>\AppData\Local\hermes\plugins\` (primary, loaded at runtime)
+- `~/.hermes/plugins/` (sync copy, used by some tools)
+
+The install scripts above copy to **both** locations automatically.
+
 ## 它做什么
 
 - **指代消解**：把"那个 9200 装不上的事"补成"9200 PWA manifest 安装失败的问题"
