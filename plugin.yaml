@@ -17,7 +17,10 @@ config_schema:
   mode:
     type: str
     default: augment
-    choices: [off, augment, replace]
+    # Quoted: the settings surface reads this manifest through the shared safe
+    # YAML 1.1 reader, where bare ``off`` is a boolean and an unquoted ``off``
+    # choice becomes the select option "False" instead of "off".
+    choices: ["off", "augment", "replace"]
     label: "Mode"
     description: "off=不优化；augment=追加优化参考（原话保留）；replace=直接替换发出消息"
   injection:
