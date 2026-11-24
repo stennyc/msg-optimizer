@@ -35,3 +35,8 @@ config_schema:
     default: 20
     label: "Min message length"
     description: "用户消息短于此长度（字符）时跳过优化，省小模型调用"
+  scenarios:
+    type: bool
+    default: true
+    label: "Scenario routing"
+    description: "小模型一次调用内判情景（verify/design/create/ops/qa/default）并填 scenario 字段；off=字节稳定回滚面"
