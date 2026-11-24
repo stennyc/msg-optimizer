@@ -40,3 +40,13 @@ config_schema:
     default: true
     label: "Scenario routing"
     description: "小模型一次调用内判情景（verify/design/create/ops/qa/default）并填 scenario 字段；off=字节稳定回滚面"
+  min_len_verify:
+    type: int
+    default: 8
+    label: "Verify-class min length"
+    description: "验证类消息（含代码标识符/路径/URL 或短问号句）的门控下限；0=关闭（语言无关的词形探针，非短语表）"
+  max_verify_len:
+    type: int
+    default: 60
+    label: "Verify-class max length"
+    description: "短问号句探针的长度上限（字符）"
